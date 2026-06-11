@@ -163,14 +163,32 @@ function buildSettingsTab() {
   inp.type = "password";
   inp.placeholder = "AIza…";
 
+  const fetchBtn = el("button", "ap-btn-secondary");
+  fetchBtn.id = "ap-btn-fetch-models";
+  fetchBtn.textContent = "Load Models";
+  fetchBtn.style.marginTop = "6px";
+
+  const modelLbl = el("label", "ap-label");
+  modelLbl.textContent = "Model";
+  modelLbl.style.marginTop = "8px";
+
+  const modelSelect = el("select", "ap-input");
+  modelSelect.id = "ap-model-select";
+  modelSelect.disabled = true;
+  const defaultOpt = document.createElement("option");
+  defaultOpt.value = "";
+  defaultOpt.textContent = "— enter API key then Load Models —";
+  modelSelect.appendChild(defaultOpt);
+
   const saveBtn = el("button", "ap-btn-secondary");
   saveBtn.id = "ap-btn-save-settings";
   saveBtn.textContent = "Save";
+  saveBtn.style.marginTop = "8px";
 
   const status = el("p", "ap-hint");
   status.id = "ap-settings-status";
 
-  div.append(lbl, inp, saveBtn, status);
+  div.append(lbl, inp, fetchBtn, modelLbl, modelSelect, saveBtn, status);
   return div;
 }
 
@@ -276,14 +294,21 @@ function wireEvents(panel, shadow) {
 
   shadow.getElementById("ap-btn-generate")?.addEventListener("click", () => handleAIGenerate(shadow));
   shadow.getElementById("ap-btn-save-settings")?.addEventListener("click", () => saveSettings(shadow));
+  shadow.getElementById("ap-btn-fetch-models")?.addEventListener("click", () => handleFetchModels(shadow));
   shadow.getElementById("ap-btn-clear-results")?.addEventListener("click", () => {
     sessionResults.length = 0;
     refreshResults(shadow);
   });
 
-  chrome.storage.local.get(["apiKey", "teamName"], (data) => {
+  chrome.storage.local.get(["apiKey", "teamName", "selectedModel"], (data) => {
     if (data.apiKey) shadow.getElementById("ap-api-key").value = data.apiKey;
     if (data.teamName) shadow.getElementById("ap-team-name").value = data.teamName;
+    if (data.apiKey && data.selectedModel) {
+      populateModelSelect(shadow.getElementById("ap-model-select"), [], data.selectedModel);
+      fetchAvailableModels(data.apiKey)
+        .then(models => populateModelSelect(shadow.getElementById("ap-model-select"), models, data.selectedModel))
+        .catch(() => {});
+    }
   });
 }
 
@@ -319,7 +344,7 @@ async function handleAIGenerate(shadow) {
   const btn = shadow.getElementById("ap-btn-generate");
   const defenderResponse = shadow.getElementById("ap-defender-response")?.value || "";
   const resultsDiv = shadow.getElementById("ap-ai-results");
-  const { apiKey } = await chrome.storage.local.get("apiKey");
+  const { apiKey, selectedModel } = await chrome.storage.local.get(["apiKey", "selectedModel"]);
 
   if (!apiKey) {
     resultsDiv.textContent = "";
@@ -329,16 +354,17 @@ async function handleAIGenerate(shadow) {
     return;
   }
 
+  const model = selectedModel || "gemini-2.5-flash";
   btn.disabled = true;
   btn.textContent = "Generating…";
   resultsDiv.textContent = "";
   const hint = el("p", "ap-hint");
-  hint.textContent = "Calling Gemini 2.5 Flash…";
+  hint.textContent = `Calling ${model}…`;
   resultsDiv.appendChild(hint);
 
   try {
     const failed = sessionResults.filter(r => !r.leaked).map(r => ({ prompt: r.prompt }));
-    const attacks = await generateTailoredAttacks(apiKey, defenderResponse, failed);
+    const attacks = await generateTailoredAttacks(apiKey, defenderResponse, failed, model);
 
     resultsDiv.textContent = "";
     if (!attacks.length) {
@@ -428,16 +454,71 @@ function refreshResults(shadow) {
 function saveSettings(shadow) {
   const apiKey = shadow.getElementById("ap-api-key")?.value.trim();
   const teamName = shadow.getElementById("ap-team-name")?.value.trim();
+  const selectedModel = shadow.getElementById("ap-model-select")?.value || "";
   const status = shadow.getElementById("ap-settings-status");
   if (!apiKey) {
     if (status) status.textContent = "⚠ API key cannot be empty.";
     return;
   }
-  chrome.storage.local.set({ apiKey, teamName }, () => {
+  chrome.storage.local.set({ apiKey, teamName, selectedModel }, () => {
     if (status) {
       status.textContent = "✓ Saved!";
       setTimeout(() => { status.textContent = ""; }, 2000);
     }
+  });
+}
+
+async function handleFetchModels(shadow) {
+  const apiKey = shadow.getElementById("ap-api-key")?.value.trim();
+  const status = shadow.getElementById("ap-settings-status");
+  const btn = shadow.getElementById("ap-btn-fetch-models");
+  const select = shadow.getElementById("ap-model-select");
+
+  if (!apiKey) {
+    if (status) status.textContent = "⚠ Enter API key first.";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Loading…";
+  if (status) status.textContent = "";
+
+  try {
+    const { selectedModel } = await chrome.storage.local.get("selectedModel");
+    const models = await fetchAvailableModels(apiKey);
+    populateModelSelect(select, models, selectedModel || "");
+    if (status) {
+      status.textContent = `✓ ${models.length} model(s) loaded.`;
+      setTimeout(() => { status.textContent = ""; }, 2500);
+    }
+  } catch (err) {
+    if (status) status.textContent = "✗ " + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Load Models";
+  }
+}
+
+function populateModelSelect(select, models, currentValue) {
+  if (!select) return;
+  select.textContent = "";
+  select.disabled = false;
+
+  if (!models.length) {
+    // Show previously saved value as a fallback option so it isn't lost
+    const opt = document.createElement("option");
+    opt.value = currentValue || "";
+    opt.textContent = currentValue || "— no models available —";
+    select.appendChild(opt);
+    return;
+  }
+
+  models.forEach(m => {
+    const opt = document.createElement("option");
+    opt.value = m.id;
+    opt.textContent = m.displayName;
+    if (m.id === currentValue) opt.selected = true;
+    select.appendChild(opt);
   });
 }
 

@@ -15,7 +15,14 @@
     <label class="popup-label">Gemini API Key</label>
     <input id="api-key" type="password" class="popup-input" placeholder="AIza…">
 
-    <label class="popup-label">Default Team Name</label>
+    <button id="load-models-btn" class="popup-btn-secondary">Load Models</button>
+
+    <label class="popup-label" style="margin-top:8px">Model</label>
+    <select id="model-select" class="popup-input" disabled>
+      <option value="">— enter API key then Load Models —</option>
+    </select>
+
+    <label class="popup-label" style="margin-top:8px">Default Team Name</label>
     <input id="team-name" type="text" class="popup-input" placeholder="Attacker">
 
     <button id="save-btn" class="popup-btn-primary">Save Settings</button>

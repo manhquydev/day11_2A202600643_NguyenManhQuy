@@ -57,6 +57,20 @@ body {
 }
 .popup-btn-primary:hover { opacity: 0.85; }
 
+.popup-btn-secondary {
+  width: 100%;
+  padding: 6px 8px;
+  background: #2d3748;
+  color: #a0aec0;
+  border: 1px solid #4a5568;
+  border-radius: 5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 12px;
+}
+.popup-btn-secondary:hover { background: #3a4a5c; color: #e2e8f0; }
+.popup-btn-secondary:disabled { opacity: 0.5; cursor: default; }
+
 .popup-status {
   font-size: 11px;
   min-height: 16px;
