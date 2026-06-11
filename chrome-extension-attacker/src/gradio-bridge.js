@@ -62,12 +62,21 @@ function findInput(labelHint) {
   return null;
 }
 
-// Find a button by its text content
-function findButton(textHint) {
-  const buttons = document.querySelectorAll("button");
+// Find a button by its text content, scoped to a container (default: active tab)
+function findButton(textHint, scope) {
+  const root = scope || getActiveTabPanel();
+  const buttons = root.querySelectorAll("button");
   for (const btn of buttons) {
     if (btn.textContent.trim().toLowerCase().includes(textHint.toLowerCase())) {
       return btn;
+    }
+  }
+  // Fallback: search full document
+  if (root !== document.body) {
+    for (const btn of document.querySelectorAll("button")) {
+      if (btn.textContent.trim().toLowerCase().includes(textHint.toLowerCase())) {
+        return btn;
+      }
     }
   }
   return null;
@@ -88,7 +97,7 @@ function switchToAttackerTab() {
 // Inject a prompt into the Gradio Attacker tab and optionally submit
 async function injectAttackPrompt(prompt, teamName, autoSubmit = false) {
   switchToAttackerTab();
-  await sleep(300);
+  await sleep(700); // Gradio needs time to render tab content after switch
 
   // Set team name
   if (teamName) {

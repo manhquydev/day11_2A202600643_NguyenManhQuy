@@ -114,12 +114,12 @@ function buildAITab() {
   div.id = "ap-tab-ai";
 
   const hint = el("p", "ap-hint");
-  hint.textContent = "Paste the defender's latest response to generate targeted attacks.";
+  hint.textContent = "Paste the Defender Addon (system prompt the defender wrote) to generate targeted attacks.";
 
   const ta = el("textarea", "ap-textarea");
-  ta.id = "ap-defender-response";
+  ta.id = "ap-defender-response"; // legacy id kept; content is now "Defender Addon" (system prompt)
   ta.rows = 4;
-  ta.placeholder = "Paste agent response here…";
+  ta.placeholder = "Paste defender's system prompt addon here…";
 
   const genBtn = el("button", "ap-btn-primary");
   genBtn.id = "ap-btn-generate";
@@ -342,7 +342,7 @@ function wireCardButtons(shadow) {
 
 async function handleAIGenerate(shadow) {
   const btn = shadow.getElementById("ap-btn-generate");
-  const defenderResponse = shadow.getElementById("ap-defender-response")?.value || "";
+  const defenderAddon = shadow.getElementById("ap-defender-response")?.value || "";
   const resultsDiv = shadow.getElementById("ap-ai-results");
   const { apiKey, selectedModel } = await chrome.storage.local.get(["apiKey", "selectedModel"]);
 
@@ -364,7 +364,7 @@ async function handleAIGenerate(shadow) {
 
   try {
     const failed = sessionResults.filter(r => !r.leaked).map(r => ({ prompt: r.prompt }));
-    const attacks = await generateTailoredAttacks(apiKey, defenderResponse, failed, model);
+    const attacks = await generateTailoredAttacks(apiKey, defenderAddon, failed, model);
 
     resultsDiv.textContent = "";
     if (!attacks.length) {
