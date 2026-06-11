@@ -38,6 +38,7 @@ Day-11-Guardrails-HITL-Responsible-AI/
 │   ├── manifest.json                       # Manifest v3
 │   ├── content.js                          # Content script (Gradio bridge)
 │   ├── background.js                       # Service worker
+│   ├── generate_icons.py                   # Icon generation script
 │   ├── popup.html / popup.js               # Popup UI
 │   ├── src/
 │   │   ├── attack-library.js               # Attack pattern library
@@ -55,11 +56,13 @@ Day-11-Guardrails-HITL-Responsible-AI/
 ├── security_audit.json                     # 30+ test results (safe/attack/edge/rate-limit)
 ├── docs/
 │   ├── codebase-summary.md                 # Codebase overview
-│   └── system-architecture.md             # Architecture diagram
+│   └── system-architecture.md              # Architecture diagram
 ├── plans/                                  # Implementation plans
 ├── requirements.txt
-└── .env                                    # GOOGLE_API_KEY
+└── .env                                    # GOOGLE_API_KEY (gitignored, create manually)
 ```
+
+> **Note:** `.env` is gitignored — create it from the template above or set `GOOGLE_API_KEY` as an environment variable.
 
 ## Defense Pipeline
 
@@ -73,6 +76,11 @@ User input
   → AuditLogger + MonitoringAlerts
   → User response
 ```
+
+## Requirements
+
+- **Python >= 3.10** (uses `match` statements, `dataclass`)
+- Google API key (optional for deterministic pipeline, required for live Gemini/Judge/Arena)
 
 ## Setup
 
@@ -96,7 +104,7 @@ python main.py --part 4           # HITL design
 
 ```bash
 cd src
-python main.py --part 5           # Deterministic pipeline test
+python main.py --part 5           # Deterministic pipeline test — regenerates security_audit.json
 ```
 
 ### Run Attack-Defense Arena
@@ -110,16 +118,16 @@ python arena_student.py           # Student-only (attacks + scores)
 #   PORT=7860  custom port
 ```
 
-State lưu vào `arena_state.json` — không mất khi restart.
+State auto-saved to `arena_state.json` (runtime artifact, not tracked by git).
 
 ### Chrome Extension Attacker
 
-1. Mở `chrome://extensions/`
-2. Bật Developer mode
-3. Load unpacked → chọn `chrome-extension-attacker/`
-4. Trỏ tới Gradio Arena URL
+1. Open `chrome://extensions/`
+2. Enable Developer mode
+3. Load unpacked → select `chrome-extension-attacker/`
+4. Point to the Gradio Arena URL
 
-Extension tự động inject attack prompts, theo dõi rò rỉ, và gen attack bằng AI.
+The extension automatically injects attack prompts, tracks leaks, and generates AI-powered attacks.
 
 ## What's Built
 
@@ -161,15 +169,15 @@ Extension tự động inject attack prompts, theo dõi rò rỉ, và gen attack
 
 ### Chrome Extension (chrome-extension-attacker/)
 
-Auto-inject attack prompts vào Gradio Arena. Tính năng:
-- Attack library với nhiều vector (injection, encoding, Vietnamese, spell-out...)
-- AI-generated attacks qua Gemini
+Auto-injects attack prompts into Gradio Arena. Features:
+- Attack library with multiple vectors (injection, encoding, Vietnamese, spell-out...)
+- AI-generated attacks via Gemini
 - Gradio DOM bridge (click, submit, read response)
 - In-page panel + popup UI
 
 ## Security Audit Results
 
-`security_audit.json` — 30+ interactions:
+`security_audit.json` — 30+ interactions (regenerate via `cd src && python main.py --part 5`):
 
 | Scenario | Result |
 |----------|--------|
@@ -198,11 +206,11 @@ flowchart TD
 
 ## Key Design Decisions
 
-- **Deterministic grading path**: pipeline chạy không cần `GOOGLE_API_KEY` (dùng fallback judge) — tránh lỗi quota/network.
-- **Live LLM adapters**: injectable khi có key — không sửa code pipeline.
-- **Defense-in-depth**: input→output→judge→audit — 1 layer hỏng, layer khác vẫn chặn.
-- **No false positives**: 5/5 safe queries pass không bị chặn.
-- **NeMo Guardrails ≠ NeMo Framework**: dùng Colang rails, không cần train model.
+- **Deterministic grading path**: pipeline runs without `GOOGLE_API_KEY` (uses fallback judge) — avoids quota/network issues.
+- **Live LLM adapters**: injectable when key is set — no pipeline code changes needed.
+- **Defense-in-depth**: input→output→judge→audit — one layer fails, another still blocks.
+- **No false positives**: 5/5 safe queries pass without being blocked.
+- **NeMo Guardrails ≠ NeMo Framework**: uses Colang rails, no model training required.
 
 ## Tools
 
