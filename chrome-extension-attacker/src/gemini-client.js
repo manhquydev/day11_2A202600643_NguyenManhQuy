@@ -5,8 +5,8 @@ const GEMINI_MODEL_DEFAULT = "gemini-2.5-flash";
 
 // Fetch all Gemini models available for the given API key that support generateContent
 async function fetchAvailableModels(apiKey) {
-  const url = `${GEMINI_API_BASE}?key=${encodeURIComponent(apiKey)}`;
-  const resp = await fetch(url);
+  const url = GEMINI_API_BASE;
+  const resp = await fetch(url, { headers: { "x-goog-api-key": apiKey } });
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({}));
     throw new Error(err?.error?.message || `HTTP ${resp.status}`);

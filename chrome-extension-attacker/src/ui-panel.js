@@ -502,7 +502,6 @@ async function handleFetchModels(shadow) {
 function populateModelSelect(select, models, currentValue) {
   if (!select) return;
   select.textContent = "";
-  select.disabled = false;
 
   if (!models.length) {
     // Show previously saved value as a fallback option so it isn't lost
@@ -510,8 +509,11 @@ function populateModelSelect(select, models, currentValue) {
     opt.value = currentValue || "";
     opt.textContent = currentValue || "— no models available —";
     select.appendChild(opt);
+    select.disabled = true;
     return;
   }
+
+  select.disabled = false;
 
   models.forEach(m => {
     const opt = document.createElement("option");

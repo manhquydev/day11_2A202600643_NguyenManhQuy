@@ -1,5 +1,6 @@
 // Popup script — settings save/load and session stats display
-
+// Note: GEMINI_API_BASE is duplicated from gemini-client.js because the popup
+// runs in a separate extension page and cannot access content-script globals.
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 const apiKeyInput = document.getElementById("api-key");
@@ -46,8 +47,8 @@ loadModelsBtn.addEventListener("click", async () => {
 });
 
 async function fetchAndPopulateModels(apiKey, currentValue) {
-  const url = `${GEMINI_API_BASE}?key=${encodeURIComponent(apiKey)}`;
-  const resp = await fetch(url);
+  const url = GEMINI_API_BASE;
+  const resp = await fetch(url, { headers: { "x-goog-api-key": apiKey } });
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({}));
     throw new Error(err?.error?.message || `HTTP ${resp.status}`);
