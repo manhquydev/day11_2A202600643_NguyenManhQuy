@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "Arena Attacker Pro",
+  "version": "1.0.0",
+  "description": "Attack panel for AI Attack-Defense Arena — auto-inject prompts, track leaks, AI-generate attacks",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "*://localhost/*",
+    "*://127.0.0.1/*",
+    "*://*.gradio.live/*",
+    "*://*.gradio.app/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://localhost/*",
+        "*://127.0.0.1/*",
+        "*://*.gradio.live/*",
+        "*://*.gradio.app/*"
+      ],
+      "js": ["src/attack-library.js", "src/gemini-client.js", "src/gradio-bridge.js", "src/ui-panel.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["styles/panel.css"],
+      "matches": ["*://localhost/*", "*://127.0.0.1/*", "*://*.gradio.live/*", "*://*.gradio.app/*"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Arena Attacker Pro",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  }
+}

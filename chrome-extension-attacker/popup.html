@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arena Attacker Pro</title>
+  <link rel="stylesheet" href="styles/popup.css">
+</head>
+<body>
+  <div class="popup-header">
+    <span>⚔️ Arena Attacker Pro</span>
+  </div>
+
+  <div class="popup-body">
+    <label class="popup-label">Gemini API Key</label>
+    <input id="api-key" type="password" class="popup-input" placeholder="AIza…">
+
+    <label class="popup-label">Default Team Name</label>
+    <input id="team-name" type="text" class="popup-input" placeholder="Attacker">
+
+    <button id="save-btn" class="popup-btn-primary">Save Settings</button>
+    <p id="status" class="popup-status"></p>
+
+    <hr class="popup-divider">
+
+    <p class="popup-hint">
+      The attack panel auto-appears on any Gradio page.<br>
+      Drag it anywhere on screen.
+    </p>
+
+    <div class="popup-stats" id="stats">
+      <span id="stat-total">0 attacks</span>
+      <span id="stat-leaks">0 leaked</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
