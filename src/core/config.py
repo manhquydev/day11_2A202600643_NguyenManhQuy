@@ -17,6 +17,7 @@ ALLOWED_TOPICS = [
     "banking", "account", "transaction", "transfer",
     "loan", "interest", "savings", "credit",
     "deposit", "withdrawal", "balance", "payment",
+    "atm", "joint account", "spouse", "card",
     "tai khoan", "giao dich", "tiet kiem", "lai suat",
     "chuyen tien", "the tin dung", "so du", "vay",
     "ngan hang", "atm",

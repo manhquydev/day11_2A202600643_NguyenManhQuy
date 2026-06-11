@@ -8,6 +8,7 @@ Usage:
     python main.py --part 2     # Run only Part 2 (guardrails)
     python main.py --part 3     # Run only Part 3 (testing pipeline)
     python main.py --part 4     # Run only Part 4 (HITL design)
+    python main.py --part 5     # Run Assignment 11 production pipeline
 """
 import sys
 import asyncio
@@ -122,16 +123,28 @@ def part4_hitl():
     test_hitl_points()
 
 
+def part5_production_pipeline():
+    """Part 5: Assignment 11 production defense-in-depth pipeline."""
+    print("\n" + "=" * 60)
+    print("PART 5: Production Defense Pipeline")
+    print("=" * 60)
+
+    from testing.testing import run_production_assignment_suite
+
+    run_production_assignment_suite()
+
+
 async def main(parts=None):
     """Run the full lab or specific parts.
 
     Args:
         parts: List of part numbers to run, or None for all
     """
-    setup_api_key()
-
     if parts is None:
-        parts = [1, 2, 3, 4]
+        parts = [1, 2, 3, 4, 5]
+
+    if any(part in {1, 2, 3} for part in parts):
+        setup_api_key()
 
     for part in parts:
         if part == 1:
@@ -142,6 +155,8 @@ async def main(parts=None):
             await part3_testing()
         elif part == 4:
             part4_hitl()
+        elif part == 5:
+            part5_production_pipeline()
         else:
             print(f"Unknown part: {part}")
 
@@ -155,8 +170,8 @@ if __name__ == "__main__":
         description="Lab 11: Guardrails, HITL & Responsible AI"
     )
     parser.add_argument(
-        "--part", type=int, choices=[1, 2, 3, 4],
-        help="Run only a specific part (1-4). Default: run all.",
+        "--part", type=int, choices=[1, 2, 3, 4, 5],
+        help="Run only a specific part (1-5). Default: run all.",
     )
     args = parser.parse_args()
 
