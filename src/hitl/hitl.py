@@ -136,6 +136,24 @@ hitl_decision_points = [
 ]
 
 
+def hitl_flowchart_mermaid() -> str:
+    """Return the HITL routing flowchart for report/notebook output."""
+    return """flowchart TD
+    A[Customer request] --> B{High-risk action?}
+    B -->|Yes| H[Human-in-the-loop escalation]
+    B -->|No| C{Confidence score}
+    C -->|>= 0.90| D[Auto-send]
+    C -->|0.70-0.89| E[Human-as-tiebreaker queue]
+    C -->|< 0.70| F[Immediate human escalation]
+    D --> G{Safety anomaly later?}
+    E --> G
+    F --> G
+    H --> G
+    G -->|Repeated injection/rate-limit| I[Human-on-the-loop monitoring]
+    G -->|Normal| J[Audit and close]
+"""
+
+
 # ============================================================
 # Quick tests
 # ============================================================
@@ -178,6 +196,8 @@ def test_hitl_points():
         print(f"    Model:    {point['hitl_model']}")
         print(f"    Context:  {point['context_needed']}")
         print(f"    Example:  {point['example']}")
+    print("\nHITL Flowchart (Mermaid):")
+    print(hitl_flowchart_mermaid())
     print("\n" + "=" * 60)
 
 

@@ -77,11 +77,19 @@ class DeterministicJudge:
 class DefensePipeline:
     """Chains independent safety layers before and after response generation."""
 
-    def __init__(self, rate_limiter=None, audit_logger=None, monitor=None, judge=None):
+    def __init__(
+        self,
+        rate_limiter=None,
+        audit_logger=None,
+        monitor=None,
+        judge=None,
+        response_generator=None,
+    ):
         self.rate_limiter = rate_limiter or RateLimiter()
         self.audit_logger = audit_logger or AuditLogger()
         self.monitor = monitor or MonitoringAlerts()
         self.judge = judge or DeterministicJudge()
+        self.response_generator = response_generator
 
     def _block(self, start, user_id, user_input, layer, reason) -> PipelineResult:
         """Create, audit, and monitor a blocked pipeline result."""
@@ -99,6 +107,9 @@ class DefensePipeline:
 
     def _generate_response(self, user_input: str) -> str:
         """Return a safe banking response after input layers pass."""
+        if self.response_generator is not None:
+            return self.response_generator(user_input)
+
         lower = user_input.lower()
         if "transfer" in lower or "chuyen tien" in lower:
             return "You can transfer money from the VinBank app after verifying recipient details and OTP."
@@ -112,7 +123,8 @@ class DefensePipeline:
 
     def _record(self, user_id: str, user_input: str, result: PipelineResult) -> None:
         """Store redacted audit data and update monitoring counters."""
-        self.audit_logger.record({"user_id": user_id, "input": user_input[:500], **asdict(result)})
+        sanitized_input = content_filter(user_input[:500])["redacted"]
+        self.audit_logger.record({"user_id": user_id, "input": sanitized_input, **asdict(result)})
         self.monitor.observe(result)
 
     def process(self, user_input: str, user_id: str = "default") -> PipelineResult:
@@ -133,10 +145,34 @@ class DefensePipeline:
         if topic_filter(user_input):
             return self._block(start, user_id, user_input, "input_guardrails", "Off-topic or blocked topic")
 
-        response = self._generate_response(user_input)
+        try:
+            response = self._generate_response(user_input)
+        except Exception as error:
+            return self._block(
+                start,
+                user_id,
+                user_input,
+                "llm",
+                f"LLM unavailable: {type(error).__name__}",
+            )
+
         filtered = content_filter(response)
         response = filtered["redacted"]
-        judge = self.judge.evaluate(user_input, response)
+        try:
+            judge = self.judge.evaluate(user_input, response)
+        except Exception as error:
+            result = PipelineResult(
+                "BLOCKED",
+                "I cannot verify this response right now. Please try again later.",
+                True,
+                "llm_judge",
+                f"Judge unavailable: {type(error).__name__}",
+                round((time.perf_counter() - start) * 1000, 2),
+                None,
+            )
+            self._record(user_id, user_input, result)
+            return result
+
         if judge.verdict != "PASS":
             result = PipelineResult(
                 "BLOCKED",
@@ -148,12 +184,17 @@ class DefensePipeline:
                 judge,
             )
         else:
+            reason = (
+                f"Output redacted: {', '.join(filtered['issues'])}"
+                if filtered["issues"]
+                else "Passed all safety layers"
+            )
             result = PipelineResult(
                 "PASS",
                 response,
                 False,
                 None,
-                "Passed all safety layers",
+                reason,
                 round((time.perf_counter() - start) * 1000, 2),
                 judge,
             )

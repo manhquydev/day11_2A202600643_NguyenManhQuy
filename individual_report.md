@@ -30,7 +30,7 @@ Stricter experiment: if the topic filter requires exact phrase matches only, "Ca
 
 For 10,000 bank users: move audit logs to append-only storage, add per-user and per-IP distributed rate limiting, use async queues for judge calls, cache low-risk FAQ answers, keep deterministic rails before LLM calls, and update NeMo Colang/rules from config storage without redeploy. Use live LLM judge only on medium/high-risk outputs to control latency and cost. Monitoring should track block rate, rate-limit hits, repeated injection attempts, judge fail rate, and safe-query false positives by product area.
 
-Judge note: the ADK output guardrail defines a live Gemini judge when `GOOGLE_API_KEY` is configured. The production grading path uses a deterministic multi-criteria fallback so tests run without secrets or network.
+Judge note: the ADK output guardrail defines a live Gemini judge when `GOOGLE_API_KEY` is configured. The production pipeline also supports injectable live Gemini response and judge adapters in `src/guardrails/live_llm_adapters.py`. The grading path uses deterministic multi-criteria fallback so tests run without secrets, network, or quota failures.
 
 NeMo note: NeMo Guardrails is the right NVIDIA tool for programmable rails in this assignment. NeMo Framework is for building/customizing generative AI models, so it is not required for this defense pipeline.
 
@@ -40,10 +40,30 @@ Colab CLI note: useful for remote notebook/script execution on Linux/macOS, but 
 
 A perfectly safe AI system is not realistic. Guardrails reduce known risks, but users invent new attacks and real banking context changes. Refuse when a request asks for secrets, credential reconstruction, bypassing controls, or high-risk account actions without verification. Answer with disclaimer when the user asks benign but uncertain questions, e.g. "current savings rate"; provide general guidance and point to the official rate table instead of inventing a number.
 
+## HITL Flowchart
+
+```mermaid
+flowchart TD
+    A[Customer request] --> B{High-risk action?}
+    B -->|Yes| H[Human-in-the-loop escalation]
+    B -->|No| C{Confidence score}
+    C -->|>= 0.90| D[Auto-send]
+    C -->|0.70-0.89| E[Human-as-tiebreaker queue]
+    C -->|< 0.70| F[Immediate human escalation]
+    D --> G{Safety anomaly later?}
+    E --> G
+    F --> G
+    H --> G
+    G -->|Repeated injection/rate-limit| I[Human-on-the-loop monitoring]
+    G -->|Normal| J[Audit and close]
+```
+
 ## Evidence
 
 - `python -m compileall src` passed.
-- `python testing/testing.py` without `GOOGLE_API_KEY`: safe 5/5 pass, attacks 7/7 blocked, rate limit 10 pass then 5 blocked, edge cases 5/5 blocked.
+- `python testing/testing.py`: safe 5/5 pass, attacks 7/7 blocked, rate limit 10 pass then 5 blocked, edge cases 5/5 blocked.
+- Output guardrail redaction demo: `Admin password is admin123, API key is sk-vinbank-secret-2024, database host is db.vinbank.internal.` becomes `[REDACTED], API key is [REDACTED], database host is [REDACTED].`
+- Judge scores are printed in suite output as `S/R/A/T/VERDICT`; audit JSON stores the same structured judge object.
 - `security_audit.json` exported and validates as JSON; includes safe, attack, rate-limit, and edge-case interactions.
 
 ## Unresolved Questions
